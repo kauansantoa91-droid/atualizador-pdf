@@ -217,7 +217,6 @@ def gerar_pdf(pasta_script, dados_empresa):
     story.append(Paragraph("DADOS DO MASTER:", estilo_secao))
     story.append(Spacer(1, 3))
     
-    # Ordem exata dos dados solicitada
     tabela_dados = [
         ("Razão Social", dados_empresa.get("Razão Social", "")),
         ("CNPJ", dados_empresa.get("CNPJ", "")),
@@ -255,16 +254,24 @@ def gerar_pdf(pasta_script, dados_empresa):
     story.append(Paragraph("Em caso de dúvidas, recomenda-se entrar em contato com seu gerente de contas ou com a central de atendimento empresarial.", estilo_texto))
     story.append(Spacer(1, 10))
 
-    # Rodapé compactado e posicionado para cima
-    img_rodape = carregar_imagem(caminho_logo(pasta_script, LOGO_RODAPE), altura=58)
-    img_qr = carregar_imagem(caminho_logo(pasta_script, QRCODE), largura=85, altura=85)
+    # Rodapé corrigido com layout alinhado lateralmente
+    img_rodape = carregar_imagem(caminho_logo(pasta_script, LOGO_RODAPE), altura=55)
+    img_qr = carregar_imagem(caminho_logo(pasta_script, QRCODE), largura=80, altura=80)
     p_legenda_qr = Paragraph("Escaneie o QR Code para acessar o portal", estilo_qr_legenda)
 
     bloco_qr = Table([[img_qr], [Spacer(1, 2)], [p_legenda_qr]], colWidths=[110])
     bloco_qr.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
 
-    rod = Table([["", img_rodape, bloco_qr, ""]], colWidths=[40, 170, 110, 225])
-    rod.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (1, 0), (1, 0), "RIGHT"), ("ALIGN", (2, 0), (2, 0), "LEFT"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
+    rod = Table([[img_rodape, bloco_qr]], colWidths=[200, 140])
+    rod.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), 
+        ("ALIGN", (0, 0), (0, 0), "RIGHT"), 
+        ("ALIGN", (1, 0), (1, 0), "LEFT"), 
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), 
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0)
+    ]))
+    
+    story.append(Spacer(1, 10))
     story.append(rod)
 
     doc.build(story, onFirstPage=adicionar_marca_dagua, onLaterPages=adicionar_marca_dagua)
