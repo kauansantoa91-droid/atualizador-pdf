@@ -55,16 +55,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("<h1 style='text-align: center;'>Atualizador de PDF Cadastral</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtext'>Escolha como deseja preencher os dados para gerar o PDF</p>", unsafe_allow_html=True)
+st.markdown("<p class='subtext'>Cole a ficha do cliente abaixo para extrair os dados e gerar o PDF</p>", unsafe_allow_html=True)
 
-# FUNÇÃO DE EXTRAÇÃO INTELIGENTE (Compatível com os formatos)
+# FUNÇÃO DE EXTRAÇÃO INTELIGENTE (Compatível com os dois formatos)
 def extrair_dados_ficha(texto_ficha):
     dados = {
         "Razão Social": "NÃO IDENTIFICADO",
         "CNPJ": "00.000.000/0000-00",
         "Situação": "ATIVA",
         "CPF Master": "000.000.000-00",
-        "Nome Responsável": "NÃO IDENTIFICADO",
         "Usuário(s)": "NÃO IDENTIFICADO",
     }
 
@@ -73,29 +72,53 @@ def extrair_dados_ficha(texto_ficha):
 
     texto_ficha = texto_ficha.replace("\\", "/")
 
-    match_cnpj = re.search(r"(?:CNPJ)[:\s]*([\d./-]+)", texto_ficha, re.IGNORECASE)
-    if match_cnpj:
-        c_limpo = re.sub(r"\D", "", match_cnpj.group(1))
+    # 1. TENTA CAPTURAR PELO FORMATO DE RÓTULOS (Ex: Segundo modelo)
+    match_cnpj_rotulo = re.search(r"CNPJ[:\s]+([\d./-]+)", texto_ficha, re.IGNORECASE)
+    if match_cnpj_rotulo:
+        c_limpo = re.sub(r"\D", "", match_cnpj_rotulo.group(1))
         if len(c_limpo) == 14:
             dados["CNPJ"] = f"{c_limpo[:2]}.{c_limpo[2:5]}.{c_limpo[5:8]}/{c_limpo[8:12]}-{c_limpo[12:]}"
 
-    match_empresa = re.search(r"(?:Empresa|Raz[ãa]o\s*Social)[:\s]*([^\n]+)", texto_ficha, re.IGNORECASE)
-    if match_empresa:
-        dados["Razão Social"] = match_empresa.group(1).strip()
+    match_razao_rotulo = re.search(r"RAZ[ÃA]O SOCIAL[:\s]+([^\n]+)", texto_ficha, re.IGNORECASE)
+    if match_razao_rotulo:
+        dados["Razão Social"] = match_razao_rotulo.group(1).strip()
 
-    match_cpf = re.search(r"(?:Documento/CPF|CPF\s*Master|CPF)[:\s]*([\d.-]+)", texto_ficha, re.IGNORECASE)
-    if match_cpf:
-        cpf_limpo = re.sub(r"\D", "", match_cpf.group(1))
+    match_cpf_rotulo = re.search(r"CPF USU[ÁA]RIO MASTER[:\s]+([\d.-]+)", texto_ficha, re.IGNORECASE)
+    if match_cpf_rotulo:
+        cpf_limpo = re.sub(r"\D", "", match_cpf_rotulo.group(1))
         if len(cpf_limpo) == 11:
             dados["CPF Master"] = f"{cpf_limpo[:3]}.{cpf_limpo[3:6]}.{cpf_limpo[6:9]}-{cpf_limpo[9:]}"
 
-    match_nome = re.search(r"(?:Nome)[:\s]*([^\n]+)", texto_ficha, re.IGNORECASE)
-    if match_nome:
-        dados["Nome Responsável"] = match_nome.group(1).strip()
+    matches_user = re.findall(r"USU[ÁA]RIOS?[:\s]+([A-Za-z0-9]+)", texto_ficha, re.IGNORECASE)
+    for val_user in matches_user:
+        val_user_limpo = val_user.strip()
+        if val_user_limpo and val_user_limpo.upper() != "MASTER":
+            dados["Usuário(s)"] = val_user_limpo
+            break
 
-    match_user = re.search(r"(?:usuario|usu[áa]rio)[:\s]*([A-Za-z0-9]+)", texto_ficha, re.IGNORECASE)
-    if match_user:
-        dados["Usuário(s)"] = match_user.group(1).strip()
+    # 2. SE OS CAMPOS AINDA ESTIVEREM VAZIOS, TENTA O FORMATO DE COLCHETES (Ex: Primeiro modelo)
+    if dados["CNPJ"] == "00.000.000/0000-00":
+        match_cnpj = re.search(r"\[(\d{14})\]", texto_ficha)
+        if not match_cnpj:
+            match_cnpj = re.search(r"\b(\d{14})\b", texto_ficha)
+        if match_cnpj:
+            c = match_cnpj.group(1)
+            dados["CNPJ"] = f"{c[:2]}.{c[2:5]}.{c[5:8]}/{c[8:12]}-{c[12:]}"
+
+    if dados["Razão Social"] == "NÃO IDENTIFICADO":
+        match_razao = re.search(r"\[\d+\|\d+-[0-9X]\]\s*-\s*\[\d+\]\s*-\s*\[([^\]]+)\]", texto_ficha)
+        if match_razao:
+            dados["Razão Social"] = match_razao.group(1).strip()
+        else:
+            match_nome = re.search(r"Nome:\s*([^|]+)", texto_ficha, re.IGNORECASE)
+            if match_nome:
+                dados["Razão Social"] = match_nome.group(1).strip()
+
+    if dados["CPF Master"] == "000.000.000-00":
+        match_cpf = re.search(r"CPF:\s*(\d{11})", texto_ficha, re.IGNORECASE)
+        if match_cpf:
+            cpf = match_cpf.group(1)
+            dados["CPF Master"] = f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
 
     return dados
 
@@ -183,7 +206,6 @@ def gerar_pdf(pasta_script, dados_empresa):
     nome_pdf = f"ATUALIZAÇÃO CADASTRAL - {razao_limpa}.pdf"
     caminho_pdf = os.path.join(pasta_script, nome_pdf)
 
-    # Mantido exatamente como o seu original (margins 45)
     doc = SimpleDocTemplate(caminho_pdf, pagesize=A4, rightMargin=45, leftMargin=45, topMargin=45, bottomMargin=45)
     story = []
     styles = getSampleStyleSheet()
@@ -211,18 +233,8 @@ def gerar_pdf(pasta_script, dados_empresa):
 
     story.append(Paragraph("DADOS DO MASTER:", estilo_secao))
     story.append(Spacer(1, 6))
-    
-    tabela_dados = [
-        ("Razão Social", dados_empresa.get("Razão Social", "")),
-        ("CNPJ", dados_empresa.get("CNPJ", "")),
-        ("Situação", dados_empresa.get("Situação", "ATIVA")),
-        ("CPF Master", dados_empresa.get("CPF Master", "")),
-        ("Nome Responsável", dados_empresa.get("Nome Responsável", "")),
-        ("Usuário(s)", dados_empresa.get("Usuário(s)", ""))
-    ]
-    
-    tabela = [[Paragraph(f"<b>{k}:</b>", estilo_texto), Paragraph(str(v), estilo_texto)] for k, v in tabela_dados]
-    t = Table(tabela, colWidths=[110, 375])
+    tabela = [[Paragraph(f"<b>{k}:</b>", estilo_texto), Paragraph(str(v), estilo_texto)] for k, v in dados_empresa.items()]
+    t = Table(tabela, colWidths=[100, 385])
     t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("BOTTOMPADDING", (0, 0), (-1, -1), 2), ("TOPPADDING", (0, 0), (-1, -1), 2)]))
     story.append(t)
     story.append(Spacer(1, 18))
@@ -263,74 +275,44 @@ def gerar_pdf(pasta_script, dados_empresa):
     doc.build(story, onFirstPage=adicionar_marca_dagua, onLaterPages=adicionar_marca_dagua)
     return caminho_pdf
 
-# INTERFACE DO STREAMLIT COM AS DUAS OPÇÕES
-modo = st.radio("Escolha o modo de preenchimento:", ["📋 Colar Ficha Completa", "✏️ Digitar Manualmente Campo por Campo"])
+# INTERFACE DO STREAMLIT
+ficha_input = st.text_area("COLE A FICHA DO CLIENTE AQUI", placeholder="Cole a linha ou o bloco de texto da ficha...", height=120)
 
-st.markdown("---")
-
-dados_finais = {}
-
-if modo == "📋 Colar Ficha Completa":
-    ficha_input = st.text_area("COLE A FICHA DO CLIENTE AQUI", placeholder="Cole a linha ou o bloco de texto da ficha...", height=120)
-    
-    if st.button("Processar Ficha", type="primary"):
-        if ficha_input.strip():
-            st.session_state['dados_empresa'] = extrair_dados_ficha(ficha_input)
-            st.success("Ficha lida e extraída com sucesso!")
-        else:
-            st.warning("Por favor, cole uma ficha na caixa de texto acima.")
-
-    if 'dados_empresa' in st.session_state:
-        d = st.session_state['dados_empresa']
-        st.subheader("Conferir Dados Extraídos:")
-        col1, col2 = st.columns(2)
-        with col1:
-            r_soc = st.text_input("Razão Social", value=d["Razão Social"])
-            cnpj = st.text_input("CNPJ", value=d["CNPJ"])
-            nome_r = st.text_input("Nome Responsável", value=d["Nome Responsável"])
-        with col2:
-            sit = st.text_input("Situação", value=d["Situação"])
-            cpf_m = st.text_input("CPF Master", value=d["CPF Master"])
-            usr = st.text_input("Usuário", value=d["Usuário(s)"])
-        
-        dados_finais = {
-            "Razão Social": r_soc,
-            "CNPJ": cnpj,
-            "Situação": sit,
-            "CPF Master": cpf_m,
-            "Nome Responsável": nome_r,
-            "Usuário(s)": usr
-        }
-
-else:
-    st.subheader("Digite os Dados Manualmente:")
-    col1, col2 = st.columns(2)
-    with col1:
-        r_soc = st.text_input("Razão Social", value="CARVI PARTICIPACOES E EMPREENDIMENTOS LTDA")
-        cnpj = st.text_input("CNPJ", value="02.493.145/0001-05")
-        nome_r = st.text_input("Nome Responsável", value="RICARDO SILVA VILLANI")
-    with col2:
-        sit = st.text_input("Situação", value="ATIVA")
-        cpf_m = st.text_input("CPF Master", value="895.836.126-34")
-        usr = st.text_input("Usuário", value="RSV01116")
-    
-    dados_finais = {
-        "Razão Social": r_soc,
-        "CNPJ": cnpj,
-        "Situação": sit,
-        "CPF Master": cpf_m,
-        "Nome Responsável": nome_r,
-        "Usuário(s)": usr
-    }
-    st.session_state['dados_empresa'] = dados_finais
+if st.button("Processar e Gerar PDF", type="primary"):
+    if ficha_input.strip():
+        # Extrai os dados automaticamente da ficha colada
+        dados_extraidos = extrair_dados_ficha(ficha_input)
+        st.session_state['dados_empresa'] = dados_extraidos
+        st.success("Ficha lida e dados extraídos com sucesso!")
+    else:
+        st.warning("Por favor, cole uma ficha na caixa de texto acima.")
 
 if 'dados_empresa' in st.session_state:
+    dados = st.session_state['dados_empresa']
     st.markdown("---")
-    if st.button("📥 Baixar PDF Pronto", type="primary"):
-        caminho_pdf = gerar_pdf(PASTA_SCRIPT, st.session_state['dados_empresa'])
+    st.subheader("DADOS EXTRAÍDOS PARA O PDF")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        razao_social = st.text_input("Razão Social", value=dados["Razão Social"])
+        cnpj_val = st.text_input("CNPJ", value=dados["CNPJ"])
+    with col2:
+        situacao = st.text_input("Situação", value=dados["Situação"])
+        cpf_master = st.text_input("CPF Master", value=dados["CPF Master"])
+    
+    dados_atualizados = {
+        "Razão Social": razao_social,
+        "CNPJ": cnpj_val,
+        "Situação": situacao,
+        "CPF Master": cpf_master,
+        "Usuário(s)": dados.get("Usuário(s)", "NÃO IDENTIFICADO")
+    }
+
+    if st.button("Baixar PDF Pronto"):
+        caminho_pdf = gerar_pdf(PASTA_SCRIPT, dados_atualizados)
         with open(caminho_pdf, "rb") as f:
             st.download_button(
-                label="Clique aqui para salvar o PDF",
+                label="📥 Clique aqui para salvar o PDF",
                 data=f,
                 file_name=os.path.basename(caminho_pdf),
                 mime="application/pdf"
