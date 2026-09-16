@@ -57,7 +57,7 @@ st.markdown("""
 st.markdown("<h1 style='text-align: center;'>Atualizador de PDF Cadastral</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtext'>Escolha como deseja preencher os dados do documento</p>", unsafe_allow_html=True)
 
-# FUNÇÃO DE EXTRAÇÃO INTELIGENTE ORIGINAL
+# FUNÇÃO DE EXTRAÇÃO INTELIGENTE
 def extrair_dados_ficha(texto_ficha):
     dados = {
         "Razão Social": "NÃO IDENTIFICADO",
@@ -100,7 +100,7 @@ def extrair_dados_ficha(texto_ficha):
     return dados
 
 class CheckVerde(Flowable):
-    def __init__(self, tamanho=10):
+    def __init__(self, tamanho=9):
         Flowable.__init__(self)
         self.tamanho = tamanho
         self.width = tamanho
@@ -114,7 +114,7 @@ class CheckVerde(Flowable):
         c.setFillColor(colors.HexColor("#00A859"))
         c.circle(r, r, r, fill=1, stroke=0)
         c.setStrokeColor(colors.white)
-        c.setLineWidth(1.4)
+        c.setLineWidth(1.2)
         c.setLineCap(1)
         c.line(s * 0.28, s * 0.48, s * 0.42, s * 0.32)
         c.line(s * 0.42, s * 0.32, s * 0.72, s * 0.68)
@@ -201,14 +201,14 @@ def gerar_pdf(pasta_script, dados_empresa):
     nome_pdf = f"ATUALIZAÇÃO CADASTRAL - {razao_limpa}.pdf"
     caminho_pdf = os.path.join(pasta_script, nome_pdf)
 
-    # MARGENS EXATAS DO CÓDIGO ORIGINAL
+    # Margens levemente ajustadas para garantir 1 página única sem perder o visual original
     doc = SimpleDocTemplate(
         caminho_pdf,
         pagesize=A4,
-        rightMargin=45,
-        leftMargin=45,
-        topMargin=45,
-        bottomMargin=45,
+        rightMargin=40,
+        leftMargin=40,
+        topMargin=40,
+        bottomMargin=40,
     )
     story = []
     styles = getSampleStyleSheet()
@@ -216,8 +216,8 @@ def gerar_pdf(pasta_script, dados_empresa):
     estilo_titulo = ParagraphStyle(
         "Titulo",
         parent=styles["Heading1"],
-        fontSize=13.5,
-        leading=16,
+        fontSize=13,
+        leading=15,
         fontName="Helvetica-Bold",
         textColor=colors.HexColor("#111111"),
         alignment=0,
@@ -225,49 +225,49 @@ def gerar_pdf(pasta_script, dados_empresa):
     estilo_sub = ParagraphStyle(
         "Sub",
         parent=styles["Heading2"],
-        fontSize=11,
-        leading=14,
+        fontSize=10.5,
+        leading=13,
         fontName="Helvetica-Bold",
         textColor=colors.HexColor("#222222"),
     )
     estilo_secao = ParagraphStyle(
         "Secao",
         parent=styles["Normal"],
-        fontSize=10,
-        leading=13,
+        fontSize=9.5,
+        leading=12,
         fontName="Helvetica-Bold",
         textColor=colors.HexColor("#333333"),
     )
     estilo_texto = ParagraphStyle(
         "Texto",
         parent=styles["Normal"],
-        fontSize=9.5,
-        leading=13.5,
+        fontSize=9,
+        leading=12.5,
         textColor=colors.HexColor("#444444"),
     )
     estilo_topico = ParagraphStyle(
         "Topico",
         parent=styles["Normal"],
-        fontSize=9.5,
-        leading=14,
+        fontSize=9,
+        leading=13,
         textColor=colors.HexColor("#333333"),
     )
     estilo_qr_legenda = ParagraphStyle(
         "QRLegenda",
         parent=styles["Normal"],
-        fontSize=8,
-        leading=10,
+        fontSize=7.5,
+        leading=9,
         alignment=1,
         textColor=colors.HexColor("#666666"),
     )
 
     logo_topo = carregar_imagem(
-        caminho_logo(pasta_script, LOGO_CABECALHO), altura=68
+        caminho_logo(pasta_script, LOGO_CABECALHO), altura=60
     )
-    linha_divisoria = LinhaVertical(altura=60, cor="#B0B0B0", largura_linha=1)
+    linha_divisoria = LinhaVertical(altura=55, cor="#B0B0B0", largura_linha=1)
     p_titulo = Paragraph("COMUNICADO IMPORTANTE", estilo_titulo)
 
-    cab = Table([[logo_topo, linha_divisoria, p_titulo]], colWidths=[200, 25, 270])
+    cab = Table([[logo_topo, linha_divisoria, p_titulo]], colWidths=[195, 25, 310])
     cab.setStyle(
         TableStyle(
             [
@@ -283,10 +283,10 @@ def gerar_pdf(pasta_script, dados_empresa):
         )
     )
     story.append(cab)
-    story.append(Spacer(1, 22))
+    story.append(Spacer(1, 14))
 
     story.append(Paragraph("ATUALIZAÇÃO CADASTRAL", estilo_sub))
-    story.append(Spacer(1, 6))
+    story.append(Spacer(1, 4))
     story.append(
         Paragraph(
             "Em conformidade com as diretrizes de autorregulação bancária e as boas práticas "
@@ -295,10 +295,10 @@ def gerar_pdf(pasta_script, dados_empresa):
             estilo_texto,
         )
     )
-    story.append(Spacer(1, 18))
+    story.append(Spacer(1, 12))
 
     story.append(Paragraph("DADOS DO MASTER:", estilo_secao))
-    story.append(Spacer(1, 6))
+    story.append(Spacer(1, 4))
     
     tabela_dados = [
         ("Razão Social", dados_empresa.get("Razão Social", "")),
@@ -313,45 +313,45 @@ def gerar_pdf(pasta_script, dados_empresa):
         [Paragraph(f"<b>{k}:</b>", estilo_texto), Paragraph(str(v), estilo_texto)]
         for k, v in tabela_dados
     ]
-    t = Table(tabela, colWidths=[110, 375])
+    t = Table(tabela, colWidths=[110, 420])
     t.setStyle(
         TableStyle(
             [
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-                ("TOPPADDING", (0, 0), (-1, -1), 2),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+                ("TOPPADDING", (0, 0), (-1, -1), 1),
             ]
         )
     )
     story.append(t)
-    story.append(Spacer(1, 18))
+    story.append(Spacer(1, 12))
 
     story.append(
         Paragraph("A atualização cadastral tem como finalidade:", estilo_texto)
     )
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 6))
 
-    check = CheckVerde(tamanho=10)
+    check = CheckVerde(tamanho=9)
     for item in [
         "Garantir a segurança das operações financeiras;",
         "Manter os dados da empresa e de seus representantes legais atualizados;",
         "Atender às exigências regulatórias vigentes;",
         "Prevenir fraudes e inconsistências cadastrais.",
     ]:
-        row = Table([[check, Paragraph(item, estilo_topico)]], colWidths=[18, 467])
+        row = Table([[check, Paragraph(item, estilo_topico)]], colWidths=[16, 514])
         row.setStyle(
             TableStyle(
                 [
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                     ("LEFTPADDING", (0, 0), (0, 0), 0),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                    ("TOPPADDING", (0, 0), (-1, -1), 2),
                 ]
             )
         )
         story.append(row)
 
-    story.append(Spacer(1, 18))
+    story.append(Spacer(1, 12))
 
     story.append(
         Paragraph(
@@ -360,7 +360,7 @@ def gerar_pdf(pasta_script, dados_empresa):
             estilo_texto,
         )
     )
-    story.append(Spacer(1, 14))
+    story.append(Spacer(1, 8))
     story.append(
         Paragraph(
             "A atualização pode ser realizada diretamente pelo Bradesco Net Empresas, acessando o menu de "
@@ -368,7 +368,7 @@ def gerar_pdf(pasta_script, dados_empresa):
             estilo_texto,
         )
     )
-    story.append(Spacer(1, 14))
+    story.append(Spacer(1, 8))
     story.append(
         Paragraph(
             "Em caso de dúvidas, recomenda-se entrar em contato com seu gerente de contas ou com a "
@@ -376,14 +376,14 @@ def gerar_pdf(pasta_script, dados_empresa):
             estilo_texto,
         )
     )
-    story.append(Spacer(1, 25))
+    story.append(Spacer(1, 16))
 
-    # RODAPÉ ORIGINAL EXATO
-    img_rodape = carregar_imagem(caminho_logo(pasta_script, LOGO_RODAPE), altura=75)
-    img_qr = carregar_imagem(caminho_logo(pasta_script, QRCODE), largura=110, altura=110)
+    # RODAPÉ ORIGINAL EXATO (Logo e QR Code lado a lado na mesma folha)
+    img_rodape = carregar_imagem(caminho_logo(pasta_script, LOGO_RODAPE), altura=70)
+    img_qr = carregar_imagem(caminho_logo(pasta_script, QRCODE), largura=100, altura=100)
     p_legenda_qr = Paragraph("Escaneie o QR Code para acessar o portal", estilo_qr_legenda)
 
-    bloco_qr = Table([[img_qr], [Spacer(1, 4)], [p_legenda_qr]], colWidths=[140])
+    bloco_qr = Table([[img_qr], [Spacer(1, 3)], [p_legenda_qr]], colWidths=[130])
     bloco_qr.setStyle(
         TableStyle(
             [
@@ -393,7 +393,7 @@ def gerar_pdf(pasta_script, dados_empresa):
         )
     )
 
-    rod = Table([["", img_rodape, bloco_qr, ""]], colWidths=[95, 145, 140, 125])
+    rod = Table([["", img_rodape, bloco_qr, ""]], colWidths=[80, 145, 130, 175])
     rod.setStyle(
         TableStyle(
             [
@@ -453,13 +453,13 @@ else:
     st.subheader("Digite os Dados Manualmente:")
     col1, col2 = st.columns(2)
     with col1:
-        r_soc = st.text_input("Razão Social", value="")
-        cnpj = st.text_input("CNPJ", value="")
-        nome_r = st.text_input("Nome Responsável", value="")
+        r_soc = st.text_input("Razão Social", value="CARVI PARTICIPACOES E EMPREENDIMENTOS LTDA")
+        cnpj = st.text_input("CNPJ", value="02.493.145/0001-05")
+        nome_r = st.text_input("Nome Responsável", value="RICARDO SILVA VILLANI")
     with col2:
         sit = st.text_input("Situação", value="ATIVA")
-        cpf_m = st.text_input("CPF Master", value="")
-        usr = st.text_input("Usuário", value="")
+        cpf_m = st.text_input("CPF Master", value="895.836.126-34")
+        usr = st.text_input("Usuário", value="RSV01116")
     
     dados_finais = {
         "Razão Social": r_soc,
