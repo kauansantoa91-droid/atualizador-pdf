@@ -229,7 +229,7 @@ def gerar_pdf(pasta_script, dados_empresa):
 
     story.append(Paragraph("ATUALIZAÇÃO CADASTRAL", estilo_sub))
     story.append(Spacer(1, 6))
-    story.append(Paragraph("Em conformidade com as diretrizes de autorregulação bancária e as boas práticas estabelecidas pelo sistema financeiro nacional, comunicamos que a atualização cadastral de empresas junto ao Internet Banking Empresarial é procedimento obrigatório e periódico.", estilo_texto))
+    story.append(Paragraph("Em conformidade com las diretrizes de autorregulação bancária e as boas práticas estabelecidas pelo sistema financeiro nacional, comunicamos que a atualização cadastral de empresas junto ao Internet Banking Empresarial é procedimento obrigatório e periódico.", estilo_texto))
     story.append(Spacer(1, 18))
 
     story.append(Paragraph("DADOS DO MASTER:", estilo_secao))
@@ -282,7 +282,7 @@ dados_iniciais = {
     "CNPJ": "",
     "Situação": "ATIVA",
     "CPF Master": "",
-    "Usuário(s)": "NÃO IDENTIFICADO"
+    "Usuário(s)": ""
 }
 
 if modo_entrada == "Colar Ficha (Automático)":
@@ -294,7 +294,6 @@ if modo_entrada == "Colar Ficha (Automático)":
         else:
             st.warning("Por favor, cole uma ficha na caixa de texto acima.")
 else:
-    # Modo manual limpa ou carrega vazio
     if 'dados_empresa' not in st.session_state:
         st.session_state['dados_empresa'] = dados_iniciais
 
@@ -307,6 +306,7 @@ if 'dados_empresa' in st.session_state:
     with col1:
         razao_social = st.text_input("Razão Social", value=dados.get("Razão Social", ""))
         cnpj_val = st.text_input("CNPJ", value=dados.get("CNPJ", ""))
+        usuario_val = st.text_input("Usuário(s)", value=dados.get("Usuário(s)", ""))
     with col2:
         situacao = st.text_input("Situação", value=dados.get("Situação", "ATIVA"))
         cpf_master = st.text_input("CPF Master", value=dados.get("CPF Master", ""))
@@ -316,7 +316,7 @@ if 'dados_empresa' in st.session_state:
         "CNPJ": cnpj_val,
         "Situação": situacao,
         "CPF Master": cpf_master,
-        "Usuário(s)": dados.get("Usuário(s)", "NÃO IDENTIFICADO")
+        "Usuário(s)": usuario_val
     }
 
     if st.button("Baixar PDF Pronto", type="primary"):
