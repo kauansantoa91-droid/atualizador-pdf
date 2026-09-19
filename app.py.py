@@ -315,14 +315,14 @@ if 'dados_empresa' in st.session_state:
         situacao = st.text_input("Situação", value=dados.get("Situação", "ATIVA"))
         cpf_master = st.text_input("CPF Master", value=dados.get("CPF Master", ""))
     
-    # Campo de Usuário(s) ocupando a largura total (igual ao CNPJ) com o checkbox ao lado do título
-    col_lbl, col_chk = st.columns([4, 1])
-    with col_lbl:
-        st.markdown("**Usuário(s)**")
-    with col_chk:
+    # Campo de Usuário(s) largo com o checkbox posicionado exatamente ao lado na mesma linha
+    st.markdown("Usuário(s)")
+    col_u1, col_u2 = st.columns([5, 1])
+    with col_u1:
+        usuario_val = st.text_input("Usuário(s) input", value=dados.get("Usuário(s)", ""), label_visibility="collapsed")
+    with col_u2:
+        st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True) # Alinhamento vertical com o input
         incluir_usuario = st.checkbox("Incluir no PDF", value=True)
-        
-    usuario_val = st.text_input("Usuário(s)", value=dados.get("Usuário(s)", ""), label_visibility="collapsed")
 
     dados_atualizados = {
         "Razão Social": razao_social,
