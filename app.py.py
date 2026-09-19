@@ -235,10 +235,9 @@ def gerar_pdf(pasta_script, dados_empresa):
     story.append(Paragraph("DADOS DO MASTER:", estilo_secao))
     story.append(Spacer(1, 6))
     
-    # Monta a tabela apenas com os dados que devem aparecer
     tabela = []
     for k, v in dados_empresa.items():
-        if v is not None:  # Se não for nulo/ignorado, adiciona
+        if v is not None:
             tabela.append([Paragraph(f"<b>{k}:</b>", estilo_texto), Paragraph(str(v), estilo_texto)])
 
     t = Table(tabela, colWidths=[100, 385])
@@ -316,12 +315,13 @@ if 'dados_empresa' in st.session_state:
         situacao = st.text_input("Situação", value=dados.get("Situação", "ATIVA"))
         cpf_master = st.text_input("CPF Master", value=dados.get("CPF Master", ""))
     
-    # Checkbox para incluir ou ocultar o campo de Usuário(s)
-    incluir_usuario = st.checkbox("Incluir campo de Usuário(s) no PDF", value=True)
-    
-    usuario_val = ""
-    if incluir_usuario:
+    # Linha para o campo de Usuário(s) com a caixinha de marcação logo ao lado
+    col_u1, col_u2 = st.columns([2, 1])
+    with col_u1:
         usuario_val = st.text_input("Usuário(s)", value=dados.get("Usuário(s)", ""))
+    with col_u2:
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True) # Alinhamento visual
+        incluir_usuario = st.checkbox("Incluir no PDF", value=True)
 
     dados_atualizados = {
         "Razão Social": razao_social,
@@ -330,7 +330,6 @@ if 'dados_empresa' in st.session_state:
         "CPF Master": cpf_master,
     }
     
-    # Se a caixinha estiver marcada, adiciona ao dicionário que vai para o PDF
     if incluir_usuario:
         dados_atualizados["Usuário(s)"] = usuario_val
 
