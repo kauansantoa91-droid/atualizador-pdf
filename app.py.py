@@ -229,12 +229,18 @@ def gerar_pdf(pasta_script, dados_empresa):
 
     story.append(Paragraph("ATUALIZAÇÃO CADASTRAL", estilo_sub))
     story.append(Spacer(1, 6))
-    story.append(Paragraph("Em conformidade com las diretrizes de autorregulação bancária e as boas práticas estabelecidas pelo sistema financeiro nacional, comunicamos que a atualização cadastral de empresas junto ao Internet Banking Empresarial é procedimento obrigatório e periódico.", estilo_texto))
+    story.append(Paragraph("Em conformidade com as diretrizes de autorregulação bancária e as boas práticas estabelecidas pelo sistema financeiro nacional, comunicamos que a atualização cadastral de empresas junto ao Internet Banking Empresarial é procedimento obrigatório e periódico.", estilo_texto))
     story.append(Spacer(1, 18))
 
     story.append(Paragraph("DADOS DO MASTER:", estilo_secao))
     story.append(Spacer(1, 6))
-    tabela = [[Paragraph(f"<b>{k}:</b>", estilo_texto), Paragraph(str(v), estilo_texto)] for k, v in dados_empresa.items()]
+    
+    # Monta a tabela apenas com os dados que devem aparecer
+    tabela = []
+    for k, v in dados_empresa.items():
+        if v is not None:  # Se não for nulo/ignorado, adiciona
+            tabela.append([Paragraph(f"<b>{k}:</b>", estilo_texto), Paragraph(str(v), estilo_texto)])
+
     t = Table(tabela, colWidths=[100, 385])
     t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("BOTTOMPADDING", (0, 0), (-1, -1), 2), ("TOPPADDING", (0, 0), (-1, -1), 2)]))
     story.append(t)
@@ -306,18 +312,27 @@ if 'dados_empresa' in st.session_state:
     with col1:
         razao_social = st.text_input("Razão Social", value=dados.get("Razão Social", ""))
         cnpj_val = st.text_input("CNPJ", value=dados.get("CNPJ", ""))
-        usuario_val = st.text_input("Usuário(s)", value=dados.get("Usuário(s)", ""))
     with col2:
         situacao = st.text_input("Situação", value=dados.get("Situação", "ATIVA"))
         cpf_master = st.text_input("CPF Master", value=dados.get("CPF Master", ""))
     
+    # Checkbox para incluir ou ocultar o campo de Usuário(s)
+    incluir_usuario = st.checkbox("Incluir campo de Usuário(s) no PDF", value=True)
+    
+    usuario_val = ""
+    if incluir_usuario:
+        usuario_val = st.text_input("Usuário(s)", value=dados.get("Usuário(s)", ""))
+
     dados_atualizados = {
         "Razão Social": razao_social,
         "CNPJ": cnpj_val,
         "Situação": situacao,
         "CPF Master": cpf_master,
-        "Usuário(s)": usuario_val
     }
+    
+    # Se a caixinha estiver marcada, adiciona ao dicionário que vai para o PDF
+    if incluir_usuario:
+        dados_atualizados["Usuário(s)"] = usuario_val
 
     if st.button("Baixar PDF Pronto", type="primary"):
         if not razao_social.strip() or not cnpj_val.strip():
