@@ -55,9 +55,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("<h1 style='text-align: center;'>Atualizador de PDF Cadastral</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtext'>Cole a ficha do cliente abaixo para extrair os dados e gerar o PDF</p>", unsafe_allow_html=True)
+st.markdown("<p class='subtext'>Escolha entre preencher manualmente ou colar os dados da ficha</p>", unsafe_allow_html=True)
 
-# FUNÇÃO DE EXTRAÇÃO INTELIGENTE (Compatível com os dois formatos)
+# OPÇÃO DE ESCOLHA: COLAR OU MANUAL
+modo_entrada = st.radio("Selecione o modo de preenchimento:", ["Colar Ficha (Automático)", "Preencher Manualmente"], horizontal=True)
+
+# FUNÇÃO DE EXTRAÇÃO INTELIGENTE
 def extrair_dados_ficha(texto_ficha):
     dados = {
         "Razão Social": "NÃO IDENTIFICADO",
@@ -72,7 +75,6 @@ def extrair_dados_ficha(texto_ficha):
 
     texto_ficha = texto_ficha.replace("\\", "/")
 
-    # 1. TENTA CAPTURAR PELO FORMATO DE RÓTULOS (Ex: Segundo modelo)
     match_cnpj_rotulo = re.search(r"CNPJ[:\s]+([\d./-]+)", texto_ficha, re.IGNORECASE)
     if match_cnpj_rotulo:
         c_limpo = re.sub(r"\D", "", match_cnpj_rotulo.group(1))
@@ -96,7 +98,6 @@ def extrair_dados_ficha(texto_ficha):
             dados["Usuário(s)"] = val_user_limpo
             break
 
-    # 2. SE OS CAMPOS AINDA ESTIVEREM VAZIOS, TENTA O FORMATO DE COLCHETES (Ex: Primeiro modelo)
     if dados["CNPJ"] == "00.000.000/0000-00":
         match_cnpj = re.search(r"\[(\d{14})\]", texto_ficha)
         if not match_cnpj:
@@ -276,29 +277,39 @@ def gerar_pdf(pasta_script, dados_empresa):
     return caminho_pdf
 
 # INTERFACE DO STREAMLIT
-ficha_input = st.text_area("COLE A FICHA DO CLIENTE AQUI", placeholder="Cole a linha ou o bloco de texto da ficha...", height=120)
+dados_iniciais = {
+    "Razão Social": "",
+    "CNPJ": "",
+    "Situação": "ATIVA",
+    "CPF Master": "",
+    "Usuário(s)": "NÃO IDENTIFICADO"
+}
 
-if st.button("Processar e Gerar PDF", type="primary"):
-    if ficha_input.strip():
-        # Extrai os dados automaticamente da ficha colada
-        dados_extraidos = extrair_dados_ficha(ficha_input)
-        st.session_state['dados_empresa'] = dados_extraidos
-        st.success("Ficha lida e dados extraídos com sucesso!")
-    else:
-        st.warning("Por favor, cole uma ficha na caixa de texto acima.")
+if modo_entrada == "Colar Ficha (Automático)":
+    ficha_input = st.text_area("COLE A FICHA DO CLIENTE AQUI", placeholder="Cole a linha ou o bloco de texto da ficha...", height=120)
+    if st.button("Processar Ficha", type="primary"):
+        if ficha_input.strip():
+            st.session_state['dados_empresa'] = extrair_dados_ficha(ficha_input)
+            st.success("Ficha lida e dados extraídos com sucesso!")
+        else:
+            st.warning("Por favor, cole uma ficha na caixa de texto acima.")
+else:
+    # Modo manual limpa ou carrega vazio
+    if 'dados_empresa' not in st.session_state:
+        st.session_state['dados_empresa'] = dados_iniciais
 
 if 'dados_empresa' in st.session_state:
     dados = st.session_state['dados_empresa']
     st.markdown("---")
-    st.subheader("DADOS EXTRAÍDOS PARA O PDF")
+    st.subheader("DADOS PARA O PDF")
     
     col1, col2 = st.columns(2)
     with col1:
-        razao_social = st.text_input("Razão Social", value=dados["Razão Social"])
-        cnpj_val = st.text_input("CNPJ", value=dados["CNPJ"])
+        razao_social = st.text_input("Razão Social", value=dados.get("Razão Social", ""))
+        cnpj_val = st.text_input("CNPJ", value=dados.get("CNPJ", ""))
     with col2:
-        situacao = st.text_input("Situação", value=dados["Situação"])
-        cpf_master = st.text_input("CPF Master", value=dados["CPF Master"])
+        situacao = st.text_input("Situação", value=dados.get("Situação", "ATIVA"))
+        cpf_master = st.text_input("CPF Master", value=dados.get("CPF Master", ""))
     
     dados_atualizados = {
         "Razão Social": razao_social,
@@ -308,12 +319,15 @@ if 'dados_empresa' in st.session_state:
         "Usuário(s)": dados.get("Usuário(s)", "NÃO IDENTIFICADO")
     }
 
-    if st.button("Baixar PDF Pronto"):
-        caminho_pdf = gerar_pdf(PASTA_SCRIPT, dados_atualizados)
-        with open(caminho_pdf, "rb") as f:
-            st.download_button(
-                label="📥 Clique aqui para salvar o PDF",
-                data=f,
-                file_name=os.path.basename(caminho_pdf),
-                mime="application/pdf"
-            )
+    if st.button("Baixar PDF Pronto", type="primary"):
+        if not razao_social.strip() or not cnpj_val.strip():
+            st.error("Preencha pelo menos a Razão Social e o CNPJ para gerar o PDF.")
+        else:
+            caminho_pdf = gerar_pdf(PASTA_SCRIPT, dados_atualizados)
+            with open(caminho_pdf, "rb") as f:
+                st.download_button(
+                    label="📥 Clique aqui para salvar o PDF",
+                    data=f,
+                    file_name=os.path.basename(caminho_pdf),
+                    mime="application/pdf"
+                )
