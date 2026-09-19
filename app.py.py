@@ -222,7 +222,7 @@ def gerar_pdf(pasta_script, dados_empresa):
     linha_divisoria = LinhaVertical(altura=60, cor="#B0B0B0", largura_linha=1)
     p_titulo = Paragraph("COMUNICADO IMPORTANTE", estilo_titulo)
 
-    cab = Table([[logo_topo, linha_divisoria, p_titulo]], colWidths=[200, 25, 270])
+    cab = Table([[logo_topo, linha_divisioria, p_titulo]], colWidths=[200, 25, 270])
     cab.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
     story.append(cab)
     story.append(Spacer(1, 22))
@@ -315,13 +315,12 @@ if 'dados_empresa' in st.session_state:
         situacao = st.text_input("Situação", value=dados.get("Situação", "ATIVA"))
         cpf_master = st.text_input("CPF Master", value=dados.get("CPF Master", ""))
     
-    # Campo de Usuário(s) largo com o checkbox posicionado exatamente ao lado na mesma linha
-    st.markdown("Usuário(s)")
-    col_u1, col_u2 = st.columns([5, 1])
+    # Campo de Usuário(s) com exatamente a mesma largura dos campos de cima (CNPJ / Razão Social) e checkbox ao lado
+    col_u1, col_u2 = st.columns([3, 1])
     with col_u1:
-        usuario_val = st.text_input("Usuário(s) input", value=dados.get("Usuário(s)", ""), label_visibility="collapsed")
+        usuario_val = st.text_input("Usuário(s)", value=dados.get("Usuário(s)", ""))
     with col_u2:
-        st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True) # Alinhamento vertical com o input
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True) # Alinhamento vertical perfeito
         incluir_usuario = st.checkbox("Incluir no PDF", value=True)
 
     dados_atualizados = {
